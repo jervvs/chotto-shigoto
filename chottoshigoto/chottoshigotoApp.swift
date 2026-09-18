@@ -1,17 +1,15 @@
-//
-//  chottoshigotoApp.swift
-//  chottoshigoto
-//
-//  Created by Jervis Chan on 18/9/26.
-//
-
 import SwiftUI
 
 @main
 struct chottoshigotoApp: App {
+    @State private var sessionService = SessionService()
+    @State private var sessionStore = SessionStore()
+
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootView()
+                .environment(sessionService)
+                .environment(sessionStore)
         }
     }
 }
