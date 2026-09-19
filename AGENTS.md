@@ -44,8 +44,9 @@ chottoshigoto/
 │       ├── SettingsView.swift      # Default Timer, Focus Automation guide, Protection config
 │       └── FocusAutomationGuide.swift # Guide for setting up Shortcuts-based Focus automation
 ├── AppIntents/
-│   ├── StartChottoIntent.swift     # Opens app + signals start session via App Groups
-│   └── ChottoShortcutsProvider.swift # Registers "Start Chotto" phrase for Siri/Shortcuts
+│   ├── StartChottoIntent.swift     # Signals start session, returns end time
+│   ├── GetEndTimeIntent.swift      # Returns end time of active session or nil
+│   └── ChottoShortcutsProvider.swift # Registers phrases for Siri/Shortcuts
 ├── DesignSystem/
 │   └── ChottoColors.swift          # cream/sage/charcoal palette + grid colors
 ├── Persistence/
@@ -212,13 +213,26 @@ recoverSession() → .noActiveSession | .resume(session) | .expired(session)
 ## App Intents
 
 ### StartChottoIntent
-- Opens the app (`openAppWhenRun = true`)
 - Signals start session via shared UserDefaults (`SharedDefaults.signalStartSession()`)
-- App detects signal on launch and auto-starts with default timer
+- Returns end time as `Date` variable for Shortcuts automation
+- Does NOT open the app — user adds "Open App" action separately if needed
+
+### GetEndTimeIntent
+- Returns end time of current active session, or `nil` if no session
+- Useful for Shortcuts to check if a session is active and schedule Focus accordingly
 
 ### ChottoShortcutsProvider
-- Registers "Start Chotto" phrase for Siri/Shortcuts
-- Phrases: "Start a chotto in Chotto", "Start focus session in Chotto"
+- Registers phrases for Siri/Shortcuts
+- Phrases: "Start a chotto in Chotto", "Get chotto end time in Chotto"
+
+### Shortcuts Automation Flow
+```
+1. Start Chotto        → provides "End Time" variable
+2. Open Chotto         → (optional, starts the session)
+3. Set Focus On        → turns on Work Focus
+4. Wait until End Time → (optional)
+5. Set Focus Off       → turns off Work Focus
+```
 
 ## Progress Page
 
