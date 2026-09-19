@@ -54,15 +54,10 @@ struct chottoshigotoApp: App {
         recoveryResult = result
 
         switch result {
-        case .resume:
-            if let persisted = sessionService.repository.activeSession() {
-                sessionService.repository.delete(persisted)
-            }
-            recoveryResult = .noActiveSession
-
+        case .resume(let session):
+            sessionService.resumePersistedSession(session)
         case .expired(let session):
             sessionService.showExpiredCompletion(session)
-
         case .noActiveSession:
             break
         }
