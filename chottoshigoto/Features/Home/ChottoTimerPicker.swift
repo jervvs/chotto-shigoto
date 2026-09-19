@@ -71,6 +71,11 @@ struct ChottoTimerPicker: View {
                     .onAppear {
                         proxy.scrollTo(selectedMinutes, anchor: .center)
                     }
+                    .onChange(of: selectedMinutes) { _, newValue in
+                        withAnimation {
+                            proxy.scrollTo(newValue, anchor: .center)
+                        }
+                    }
                 }
             }
             .frame(height: containerHeight)

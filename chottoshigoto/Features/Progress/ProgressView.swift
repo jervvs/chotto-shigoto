@@ -470,9 +470,8 @@ struct ProgressView: View {
             let sessions = sessionStore.history.filter {
                 $0.endedAt >= weekStart && $0.endedAt < weekEnd
             }
-            let day = cal.component(.day, from: weekStart)
             return WeekData(
-                label: "\(day)",
+                label: "W\(week + 1)",
                 count: sessions.count,
                 avgMinutes: 0
             )
@@ -493,9 +492,8 @@ struct ProgressView: View {
             }
             let totalMinutes = sessions.reduce(0) { $0 + $1.duration } / 60.0
             let avg = sessions.isEmpty ? 0 : totalMinutes / Double(sessions.count)
-            let day = cal.component(.day, from: weekStart)
             return WeekData(
-                label: "\(day)",
+                label: "W\(week + 1)",
                 count: sessions.count,
                 avgMinutes: avg
             )
