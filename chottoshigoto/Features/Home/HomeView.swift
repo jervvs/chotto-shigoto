@@ -3,6 +3,7 @@ import SwiftUI
 struct HomeView: View {
     @Environment(SessionService.self) private var sessionService
     @Environment(SessionStore.self) private var sessionStore
+    @AppStorage("defaultTimerMinutes") private var defaultMinutes: Int = 25
     @State private var selectedMinutes: Int = 25
     @State private var isStarting = false
 
@@ -69,6 +70,7 @@ struct HomeView: View {
             .background(Color.chottoCream.ignoresSafeArea())
             .onAppear {
                 isStarting = false
+                selectedMinutes = defaultMinutes
             }
         }
     }

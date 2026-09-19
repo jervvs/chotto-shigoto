@@ -2,10 +2,44 @@ import SwiftUI
 
 struct SettingsView: View {
     @Environment(SessionService.self) private var sessionService
+    @AppStorage("defaultTimerMinutes") private var defaultMinutes: Int = 25
+    @State private var showTimerPicker = false
 
     var body: some View {
         NavigationStack {
             List {
+                // Default Timer
+                Section {
+                    Button {
+                        showTimerPicker = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "timer")
+                                .foregroundStyle(Color.chottoSage)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Default Timer")
+                                    .font(.system(size: 16, weight: .medium))
+                                    .foregroundStyle(.primary)
+                                Text("\(defaultMinutes) minutes")
+                                    .font(.system(size: 13))
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            Spacer()
+
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 14))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                } header: {
+                    Text("Focus")
+                } footer: {
+                    Text("This sets the initial timer when you open the app. You can always adjust it before starting.")
+                }
+
                 // Protection Section
                 Section {
                     #if DEBUG
@@ -36,6 +70,9 @@ struct SettingsView: View {
                 }
             }
             #endif
+            .sheet(isPresented: $showTimerPicker) {
+                DefaultTimerPickerSheet(defaultMinutes: $defaultMinutes)
+            }
             .navigationTitle("Settings")
         }
     }
@@ -160,6 +197,52 @@ struct SettingsView: View {
         return known[bundleId] ?? bundleId
     }
     #endif
+}
+
+// MARK: - Default Timer Picker Sheet
+
+private struct DefaultTimerPickerSheet: View {
+    @Binding var defaultMinutes: Int
+    @State private var tempMinutes: Int
+    @Environment(\.dismiss) private var dismiss
+
+    init(defaultMinutes: Binding<Int>) {
+        _defaultMinutes = defaultMinutes
+        _tempMinutes = State(initialValue: defaultMinutes.wrappedValue)
+    }
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 24) {
+                Text("Default Timer")
+                    .font(.system(size: 22, weight: .light, design: .serif))
+
+                ChottoTimerPicker(selectedMinutes: $tempMinutes)
+                    .padding(.horizontal, 8)
+
+                Text("\(tempMinutes) minutes")
+                    .font(.system(size: 48, weight: .thin, design: .monospaced))
+                    .monospacedDigit()
+                    .foregroundStyle(Color.chottoCharcoal)
+
+                Spacer()
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color.chottoCream.ignoresSafeArea())
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        defaultMinutes = tempMinutes
+                        dismiss()
+                    }
+                    .fontWeight(.semibold)
+                }
+            }
+        }
+    }
 }
 
 #Preview {
