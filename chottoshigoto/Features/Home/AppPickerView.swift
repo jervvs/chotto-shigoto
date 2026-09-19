@@ -1,4 +1,6 @@
 import SwiftUI
+
+#if !DEBUG
 import FamilyControls
 import ManagedSettings
 
@@ -24,3 +26,4 @@ struct AppPickerView: View {
         }
     }
 }
+#endif

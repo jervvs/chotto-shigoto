@@ -1,94 +1,22 @@
 import SwiftUI
-import FamilyControls
-import ManagedSettings
 
 struct SettingsView: View {
     @Environment(SessionService.self) private var sessionService
-    @State private var showAppPicker = false
-    @State private var showWhitelistPicker = false
-    @State private var needsAuthorization = false
-    @State private var newWhitelistBundleId = ""
-
-    private var protection: ScreenTimeProtectionService {
-        sessionService.protection as! ScreenTimeProtectionService
-    }
 
     var body: some View {
         NavigationStack {
             List {
                 // Protection Section
                 Section {
-                    HStack {
-                        Image(systemName: protection.isAuthorized ? "shield.checkered" : "shield")
-                            .foregroundStyle(protection.isAuthorized ? Color.chottoSage : .secondary)
-
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("App Protection")
-                                .font(.system(size: 16, weight: .medium))
-                            Text(protection.selectedApps.isEmpty ? "No apps selected" : "\(protection.selectedApps.count) apps blocked")
-                                .font(.system(size: 13))
-                                .foregroundStyle(.secondary)
-                        }
-
-                        Spacer()
-
-                        Button {
-                            Task {
-                                await authorizeAndPick()
-                            }
-                        } label: {
-                            Text(protection.isAuthorized ? "Change" : "Set up")
-                                .font(.system(size: 14, weight: .medium))
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .background(.quaternary)
-                                .clipShape(RoundedRectangle(cornerRadius: 6))
-                        }
-                    }
+                    #if DEBUG
+                    mockProtectionRow
+                    #else
+                    realProtectionSection
+                    #endif
                 } header: {
                     Text("Protection")
                 } footer: {
                     Text("Select apps to block during focus sessions.")
-                }
-
-                // Whitelist Section
-                Section {
-                    ForEach(protection.whitelistedApps, id: \.self) { bundleId in
-                        HStack {
-                            Image(systemName: "bell.badge")
-                                .foregroundStyle(Color.chottoSage)
-                            Text(bundleIdForDisplay(bundleId))
-                                .font(.system(size: 14))
-                            Spacer()
-                            Button {
-                                protection.removeFromWhitelist(bundleId: bundleId)
-                            } label: {
-                                Image(systemName: "minus.circle")
-                                    .foregroundStyle(.red)
-                            }
-                        }
-                    }
-
-                    HStack {
-                        TextField("Bundle ID (e.g. com.pagerduty.PagerDuty)", text: $newWhitelistBundleId)
-                            .font(.system(size: 14))
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-
-                        Button {
-                            guard !newWhitelistBundleId.isEmpty else { return }
-                            protection.addToWhitelist(bundleId: newWhitelistBundleId)
-                            newWhitelistBundleId = ""
-                        } label: {
-                            Image(systemName: "plus.circle")
-                                .foregroundStyle(Color.chottoSage)
-                        }
-                        .disabled(newWhitelistBundleId.isEmpty)
-                    }
-                } header: {
-                    Text("Whitelist")
-                } footer: {
-                    Text("These apps will never be blocked, even during focus sessions. Useful for PagerDuty, Slack alerts, phone calls, etc.")
                 }
 
                 // Version
@@ -103,27 +31,109 @@ struct SettingsView: View {
             }
             .navigationTitle("Settings")
         }
-        .sheet(isPresented: $showAppPicker) {
-            AppPickerView { selection in
-                let tokens = Array(selection.applicationTokens)
-                let categories = Array(selection.categoryTokens)
-                print("Selected \(tokens.count) apps, \(categories.count) categories")
-                protection.shieldApps(tokens)
+    }
+
+    // MARK: - Mock Protection (DEBUG)
+
+    private var mockProtectionRow: some View {
+        HStack {
+            Image(systemName: "shield.checkered")
+                .foregroundStyle(Color.chottoSage)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("App Protection")
+                    .font(.system(size: 16, weight: .medium))
+                Text("Mock active - no real blocking")
+                    .font(.system(size: 13))
+                    .foregroundStyle(.secondary)
             }
+
+            Spacer()
+
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundStyle(Color.chottoSage)
         }
-        .alert("Permission Required", isPresented: $needsAuthorization) {
-            Button("Open Settings") {
-                if let url = URL(string: UIApplication.openSettingsURLString) {
-                    UIApplication.shared.open(url)
+    }
+
+    // MARK: - Real Protection (Release)
+
+    #if !DEBUG
+    @State private var showAppPicker = false
+    @State private var needsAuthorization = false
+    @State private var newWhitelistBundleId = ""
+
+    private var protection: ScreenTimeProtectionService? {
+        sessionService.protection as? ScreenTimeProtectionService
+    }
+
+    private var realProtectionSection: some View {
+        Group {
+            HStack {
+                Image(systemName: protection?.isAuthorized == true ? "shield.checkered" : "shield")
+                    .foregroundStyle(protection?.isAuthorized == true ? Color.chottoSage : .secondary)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("App Protection")
+                        .font(.system(size: 16, weight: .medium))
+                    Text(protection?.selectedApps.isEmpty == true ? "No apps selected" : "\(protection?.selectedApps.count ?? 0) apps blocked")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                Button {
+                    Task {
+                        await authorizeAndPick()
+                    }
+                } label: {
+                    Text(protection?.isAuthorized == true ? "Change" : "Set up")
+                        .font(.system(size: 14, weight: .medium))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(.quaternary)
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
                 }
             }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("Chotto needs Screen Time access to block distracting apps.")
+
+            // Whitelist
+            ForEach(protection?.whitelistedApps ?? [], id: \.self) { bundleId in
+                HStack {
+                    Image(systemName: "bell.badge")
+                        .foregroundStyle(Color.chottoSage)
+                    Text(bundleIdForDisplay(bundleId))
+                        .font(.system(size: 14))
+                    Spacer()
+                    Button {
+                        protection?.removeFromWhitelist(bundleId: bundleId)
+                    } label: {
+                        Image(systemName: "minus.circle")
+                            .foregroundStyle(.red)
+                    }
+                }
+            }
+
+            HStack {
+                TextField("Bundle ID (e.g. com.pagerduty.PagerDuty)", text: $newWhitelistBundleId)
+                    .font(.system(size: 14))
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+
+                Button {
+                    guard !newWhitelistBundleId.isEmpty else { return }
+                    protection?.addToWhitelist(bundleId: newWhitelistBundleId)
+                    newWhitelistBundleId = ""
+                } label: {
+                    Image(systemName: "plus.circle")
+                        .foregroundStyle(Color.chottoSage)
+                }
+                .disabled(newWhitelistBundleId.isEmpty)
+            }
         }
     }
 
     private func authorizeAndPick() async {
+        guard let protection else { return }
         do {
             try await protection.requestAuthorization()
             showAppPicker = true
@@ -142,9 +152,10 @@ struct SettingsView: View {
         ]
         return known[bundleId] ?? bundleId
     }
+    #endif
 }
 
 #Preview {
     SettingsView()
-        .environment(SessionService())
+        .environment(SessionService(protection: MockProtectionService()))
 }
