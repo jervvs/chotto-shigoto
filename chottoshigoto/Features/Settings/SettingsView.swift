@@ -228,12 +228,10 @@ struct SettingsView: View {
 private struct DefaultTimerPickerSheet: View {
     @Binding var defaultMinutes: Int
     @State private var textValue: String
-    @State private var tempMinutes: Int
     @Environment(\.dismiss) private var dismiss
 
     init(defaultMinutes: Binding<Int>) {
         _defaultMinutes = defaultMinutes
-        _tempMinutes = State(initialValue: defaultMinutes.wrappedValue)
         _textValue = State(initialValue: "\(defaultMinutes.wrappedValue)")
     }
 
@@ -248,7 +246,6 @@ private struct DefaultTimerPickerSheet: View {
                 Text("Default Timer")
                     .font(.system(size: 22, weight: .light, design: .serif))
 
-                // Typable input
                 HStack(spacing: 4) {
                     TextField("25", text: $textValue)
                         .keyboardType(.numberPad)
@@ -256,9 +253,6 @@ private struct DefaultTimerPickerSheet: View {
                         .monospacedDigit()
                         .multilineTextAlignment(.center)
                         .frame(width: 120)
-                        .onChange(of: textValue) { _, _ in
-                            tempMinutes = validatedMinutes
-                        }
 
                     Text("min")
                         .font(.system(size: 20, weight: .light))
@@ -266,12 +260,9 @@ private struct DefaultTimerPickerSheet: View {
                         .padding(.top, 20)
                 }
 
-                // Synced drum wheel
-                ChottoTimerPicker(selectedMinutes: $tempMinutes)
-                    .padding(.horizontal, 8)
-                    .onChange(of: tempMinutes) { _, newValue in
-                        textValue = "\(newValue)"
-                    }
+                Text("1–180 minutes")
+                    .font(.system(size: 13))
+                    .foregroundStyle(.secondary)
 
                 Spacer()
             }
