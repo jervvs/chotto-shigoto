@@ -12,5 +12,16 @@ struct ChottoShortcutsProvider: AppShortcutsProvider {
             shortTitle: "Start Chotto",
             systemImageName: "timer"
         )
+
+        AppShortcut(
+            intent: GetEndTimeIntent(),
+            phrases: [
+                "Get chotto end time in \(.applicationName)",
+                "When does chotto end in \(.applicationName)",
+                "Check chotto timer in \(.applicationName)"
+            ],
+            shortTitle: "Get End Time",
+            systemImageName: "clock"
+        )
     }
 }
