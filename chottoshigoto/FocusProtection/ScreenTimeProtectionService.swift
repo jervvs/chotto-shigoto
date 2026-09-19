@@ -4,9 +4,7 @@ import ManagedSettings
 import os
 
 @Observable
-final class FocusProtectionService {
-    static let shared = FocusProtectionService()
-
+final class ScreenTimeProtectionService: ProtectionService {
     private(set) var isAuthorized = false
     private(set) var isProtecting = false
     private(set) var selectedApps: [ApplicationToken] = []
@@ -14,9 +12,9 @@ final class FocusProtectionService {
 
     private let store = ManagedSettingsStore()
     private let center = AuthorizationCenter.shared
-    private let logger = Logger(subsystem: "com.jervdev.chottoshigoto", category: "FocusProtection")
+    private let logger = Logger(subsystem: "com.jervdev.chottoshigoto", category: "ScreenTimeProtection")
 
-    private init() {
+    init() {
         whitelistedApps = Self.defaultWhitelistedApps
         loadWhitelist()
     }
@@ -31,22 +29,37 @@ final class FocusProtectionService {
         "com.apple.mobilemail",
     ]
 
-    // MARK: - Authorization
+    // MARK: - ProtectionService
 
-    func requestAuthorization() async -> Bool {
+    func requestAuthorization() async throws {
         do {
             try await center.requestAuthorization(for: .individual)
             isAuthorized = true
             logger.info("Authorization granted")
-            return true
         } catch {
             logger.error("Authorization failed: \(error.localizedDescription)")
             isAuthorized = false
-            return false
+            throw error
         }
     }
 
-    // MARK: - Shield
+    func activate() async throws {
+        guard !selectedApps.isEmpty else {
+            logger.info("No apps selected for protection")
+            return
+        }
+        store.shield.applications = Set(selectedApps)
+        isProtecting = true
+        logger.info("Shielded \(selectedApps.count) apps")
+    }
+
+    func deactivate() async throws {
+        store.clearAllSettings()
+        isProtecting = false
+        logger.info("All shields removed")
+    }
+
+    // MARK: - App Selection (ScreenTime-specific)
 
     func shieldApps(_ tokens: [ApplicationToken]) {
         guard !tokens.isEmpty else {
@@ -57,12 +70,6 @@ final class FocusProtectionService {
         store.shield.applications = Set(tokens)
         isProtecting = true
         logger.info("Shielded \(tokens.count) apps")
-    }
-
-    func removeShields() {
-        store.clearAllSettings()
-        isProtecting = false
-        logger.info("All shields removed")
     }
 
     // MARK: - Whitelist
