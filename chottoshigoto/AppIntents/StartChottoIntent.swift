@@ -8,13 +8,15 @@ struct StartChottoIntent: AppIntent {
         Summary("Start Chotto")
     }
 
+    var openAppWhenRun: Bool { true }
+
     func perform() async throws -> some IntentResult & ReturnsValue<Date> & ProvidesDialog {
+        SharedDefaults.signalStartSession()
+
         let defaults = UserDefaults.standard
         let minutes = defaults.integer(forKey: "defaultTimerMinutes")
         let duration = TimeInterval((minutes > 0 ? minutes : 25) * 60)
         let endTime = Date().addingTimeInterval(duration)
-
-        SharedDefaults.signalStartSession()
 
         return .result(
             value: endTime,

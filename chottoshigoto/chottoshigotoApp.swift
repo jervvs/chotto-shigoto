@@ -3,6 +3,7 @@ import SwiftData
 
 @main
 struct chottoshigotoApp: App {
+    @Environment(\.scenePhase) private var scenePhase
     @State private var sessionService: SessionService
     @State private var sessionStore = SessionStore()
     @State private var recoveryResult: SessionService.RecoveryResult = .noActiveSession
@@ -40,6 +41,11 @@ struct chottoshigotoApp: App {
                 .onAppear {
                     handleRecovery()
                 }
+                .onChange(of: scenePhase) { _, phase in
+                    if phase == .active {
+                        handleSignalWhileRunning()
+                    }
+                }
         }
     }
 
@@ -49,8 +55,6 @@ struct chottoshigotoApp: App {
 
         switch result {
         case .resume:
-            // Don't resume on launch — go to Home instead
-            // Clean up any orphaned active session
             if let persisted = sessionService.repository.activeSession() {
                 sessionService.repository.delete(persisted)
             }
@@ -63,12 +67,22 @@ struct chottoshigotoApp: App {
             break
         }
 
-        // Check if intent signaled to start a session
         if SharedDefaults.consumeStartSessionSignal() {
-            let defaults = UserDefaults.standard
-            let minutes = defaults.integer(forKey: "defaultTimerMinutes")
-            let duration = TimeInterval((minutes > 0 ? minutes : 25) * 60)
-            sessionService.startSession(plannedDuration: duration)
+            startSessionFromSignal()
         }
+    }
+
+    private func handleSignalWhileRunning() {
+        guard case .idle = sessionService.state else { return }
+        if SharedDefaults.consumeStartSessionSignal() {
+            startSessionFromSignal()
+        }
+    }
+
+    private func startSessionFromSignal() {
+        let defaults = UserDefaults.standard
+        let minutes = defaults.integer(forKey: "defaultTimerMinutes")
+        let duration = TimeInterval((minutes > 0 ? minutes : 25) * 60)
+        sessionService.startSession(plannedDuration: duration)
     }
 }
