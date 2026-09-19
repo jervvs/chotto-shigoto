@@ -40,14 +40,6 @@ struct ProgressView: View {
                         yearContent
                     }
 
-                    // Year indicator when not viewing current year
-                    if !isCurrentYear {
-                        Text("\(currentYear)")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(.secondary)
-                            .padding(.top, 4)
-                    }
-
                     Spacer(minLength: 40)
                 }
                 .padding(.horizontal, 20)
@@ -73,8 +65,16 @@ struct ProgressView: View {
 
                 Spacer()
 
-                Text(headerTitle)
-                    .font(.system(size: 28, weight: .light, design: .serif))
+                VStack(spacing: 2) {
+                    Text(headerTitle)
+                        .font(.system(size: 28, weight: .light, design: .serif))
+
+                    if viewMode == .year && !isCurrentYear {
+                        Text("\(currentYear)")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(.secondary)
+                    }
+                }
 
                 Spacer()
 
