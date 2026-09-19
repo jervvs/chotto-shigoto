@@ -7,9 +7,12 @@ final class SessionService {
     private(set) var state: SessionState = .idle
     private var timer: AnyCancellable?
 
+    private let protection: ProtectionService
     private let logger = Logger(subsystem: "com.jervdev.chottoshigoto", category: "SessionService")
 
-    let protection = FocusProtectionService.shared
+    init(protection: ProtectionService) {
+        self.protection = protection
+    }
 
     var currentSession: FocusSession? {
         switch state {
@@ -31,14 +34,14 @@ final class SessionService {
         let session = FocusSession(plannedDuration: plannedDuration)
         state = .active(session)
         startTimer()
-        applyProtection()
+        Task { await applyProtection() }
         logger.info("Session started: \(session.id)")
     }
 
     func completeSession() {
         guard case .active(let session) = state else { return }
         stopTimer()
-        removeProtection()
+        Task { await removeProtection() }
 
         var finished = session
         finished.endedAt = Date()
@@ -54,7 +57,7 @@ final class SessionService {
         let newSession = FocusSession(plannedDuration: session.plannedDuration)
         state = .active(newSession)
         startTimer()
-        applyProtection()
+        Task { await applyProtection() }
         logger.info("mou chotto started: \(newSession.id)")
     }
 
@@ -87,32 +90,30 @@ final class SessionService {
 
     func discardSession() {
         stopTimer()
-        removeProtection()
+        Task { await removeProtection() }
         state = .idle
     }
 
     func restoreActiveSession() {
-        // Check if there's a persisted active session that needs recovery
-        // For MVP, we start fresh
         state = .idle
     }
 
     // MARK: - Protection
 
-    private func applyProtection() {
-        guard protection.isAuthorized else {
-            logger.warning("Not authorized for protection")
-            return
+    private func applyProtection() async {
+        do {
+            try await protection.activate()
+        } catch {
+            logger.error("Protection activation failed: \(error.localizedDescription)")
         }
-        guard !protection.selectedApps.isEmpty else {
-            logger.info("No apps selected for protection")
-            return
-        }
-        protection.shieldApps(protection.selectedApps)
     }
 
-    private func removeProtection() {
-        protection.removeShields()
+    private func removeProtection() async {
+        do {
+            try await protection.deactivate()
+        } catch {
+            logger.error("Protection deactivation failed: \(error.localizedDescription)")
+        }
     }
 
     // MARK: - Timer
