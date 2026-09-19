@@ -9,7 +9,7 @@ struct FocusAutomationGuide: View {
                     Text("Focus Automation")
                         .font(.system(size: 28, weight: .light, design: .serif))
 
-                    Text("Automatically turn on an iOS Focus mode when you start a Chotto session.")
+                    Text("Automatically turn on an iOS Focus mode when you start a Chotto session, and turn it off when the session ends.")
                         .font(.system(size: 15))
                         .foregroundStyle(.secondary)
                 }
@@ -20,7 +20,7 @@ struct FocusAutomationGuide: View {
                     Text("How it works")
                         .font(.system(size: 17, weight: .semibold))
 
-                    Text("Chotto provides actions to the Shortcuts app. You can create a personal automation that turns on a Focus mode when you start a session.")
+                    Text("Chotto exposes \"Start Chotto\" and \"End Chotto\" actions to the Shortcuts app. You can create a personal automation that turns on a Focus mode when Chotto opens, and turns it off when Chotto closes.")
                         .font(.system(size: 15))
                         .foregroundStyle(.secondary)
                 }
@@ -38,33 +38,62 @@ struct FocusAutomationGuide: View {
 
                     GuideStep(
                         number: "2",
-                        title: "Create a new automation",
+                        title: "Create a new personal automation",
                         detail: "Tap the Automation tab, then tap \"+\" to create a new personal automation."
                     )
 
                     GuideStep(
                         number: "3",
-                        title: "Choose a trigger",
+                        title: "Choose the trigger",
                         detail: "Select \"App\" as the trigger, then choose \"Chotto\" and select \"Is Opened\"."
                     )
 
                     GuideStep(
                         number: "4",
-                        title: "Add the Focus action",
+                        title: "Add the Focus On action",
                         detail: "Tap \"Add Action\", search for \"Set Focus\", then choose which Focus mode to turn on (e.g., Work)."
                     )
 
                     GuideStep(
                         number: "5",
-                        title: "Save the automation",
-                        detail: "Tap \"Done\". Now when you open Chotto and start a timer, the Focus mode will activate automatically."
+                        title: "Set \"Run Immediately\"",
+                        detail: "Make sure \"Run Immediately\" is selected so it runs without asking."
+                    )
+
+                    GuideStep(
+                        number: "6",
+                        title: "Create the Off automation",
+                        detail: "Create another automation: Trigger = \"App\" → \"Chotto\" → \"Is Closed\". Action = \"Set Focus\" → turn off the same Focus mode."
                     )
                 }
 
-                // Note
+                // What Chotto exposes
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Chotto actions in Shortcuts")
+                        .font(.system(size: 17, weight: .semibold))
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        ActionRow(
+                            icon: "timer",
+                            name: "Start Chotto",
+                            description: "Starts a focus session with your default timer duration"
+                        )
+
+                        ActionRow(
+                            icon: "timer.circle.fill",
+                            name: "End Chotto",
+                            description: "Ends the current focus session"
+                        )
+                    }
+                    .padding(12)
+                    .background(Color.chottoSage.opacity(0.08))
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                }
+
+                // Alternative: Shortcut chaining
                 VStack(alignment: .leading, spacing: 8) {
                     Label {
-                        Text("You can create a similar automation to turn off the Focus when Chotto is closed or after a timer ends.")
+                        Text("You can also create a Shortcut that chains \"Start Chotto\" with \"Set Focus On\", then run that Shortcut manually to start your session.")
                             .font(.system(size: 14))
                             .foregroundStyle(.secondary)
                     } icon: {
@@ -83,6 +112,29 @@ struct FocusAutomationGuide: View {
         .background(Color.chottoCream.ignoresSafeArea())
         .navigationTitle("Focus Automation")
         .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+private struct ActionRow: View {
+    let icon: String
+    let name: String
+    let description: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 16))
+                .foregroundStyle(Color.chottoSage)
+                .frame(width: 20)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(name)
+                    .font(.system(size: 15, weight: .medium))
+                Text(description)
+                    .font(.system(size: 13))
+                    .foregroundStyle(.secondary)
+            }
+        }
     }
 }
 
