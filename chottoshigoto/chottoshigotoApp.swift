@@ -5,6 +5,7 @@ import SwiftData
 struct chottoshigotoApp: App {
     @State private var sessionService: SessionService
     @State private var sessionStore = SessionStore()
+    @State private var recoveryResult: SessionService.RecoveryResult = .noActiveSession
 
     let modelContainer: ModelContainer
 
@@ -32,10 +33,27 @@ struct chottoshigotoApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootView()
+            RootView(recoveryResult: recoveryResult)
                 .environment(sessionService)
                 .environment(sessionStore)
                 .modelContainer(modelContainer)
+                .onAppear {
+                    handleRecovery()
+                }
+        }
+    }
+
+    private func handleRecovery() {
+        let result = sessionService.recoverSession()
+        recoveryResult = result
+
+        switch result {
+        case .resume(let session):
+            sessionService.resumePersistedSession(session)
+        case .expired(let session):
+            sessionService.showExpiredCompletion(session)
+        case .noActiveSession:
+            break
         }
     }
 }

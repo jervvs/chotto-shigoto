@@ -4,6 +4,8 @@ struct RootView: View {
     @Environment(SessionService.self) private var sessionService
     @State private var selectedTab: Tab = .home
 
+    let recoveryResult: SessionService.RecoveryResult
+
     enum Tab {
         case home, progress, settings
     }
@@ -51,7 +53,7 @@ struct RootView: View {
 }
 
 #Preview {
-    RootView()
+    RootView(recoveryResult: .noActiveSession)
         .environment(SessionService(protection: MockProtectionService(), repository: SessionRepository.preview))
         .environment(SessionStore())
 }
