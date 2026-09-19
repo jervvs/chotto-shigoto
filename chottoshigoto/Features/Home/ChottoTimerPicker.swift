@@ -9,8 +9,6 @@ struct ChottoTimerPicker: View {
     private let tickWidth: CGFloat = 14
     private let containerHeight: CGFloat = 140
 
-    @State private var scrollPosition: Int = 25
-
     var body: some View {
         VStack(spacing: 0) {
             GeometryReader { geometry in
@@ -22,7 +20,7 @@ struct ChottoTimerPicker: View {
                             ForEach(minimumMinutes...maximumMinutes, id: \.self) { minute in
                                 TickMark(
                                     minute: minute,
-                                    isSelected: minute == scrollPosition
+                                    isSelected: minute == selectedMinutes
                                 )
                                 .frame(width: tickWidth)
                                 .id(minute)
@@ -31,13 +29,13 @@ struct ChottoTimerPicker: View {
                         .scrollTargetLayout()
                     }
                     .scrollPosition(id: Binding(
-                        get: { scrollPosition },
-                        set: { if let v = $0 { scrollPosition = v } }
+                        get: { selectedMinutes },
+                        set: { if let v = $0 { selectedMinutes = v } }
                     ))
                     .scrollTargetBehavior(.viewAligned)
                     .scrollBounceBehavior(.basedOnSize)
                     .safeAreaPadding(.horizontal, centerX - tickWidth / 2)
-                    .sensoryFeedback(.selection, trigger: scrollPosition)
+                    .sensoryFeedback(.selection, trigger: selectedMinutes)
                     .overlay(alignment: .bottom) {
                         VStack(spacing: 0) {
                             Triangle()
@@ -71,18 +69,10 @@ struct ChottoTimerPicker: View {
                     .onAppear {
                         proxy.scrollTo(selectedMinutes, anchor: .center)
                     }
-                    .onChange(of: selectedMinutes) { _, newValue in
-                        withAnimation {
-                            proxy.scrollTo(newValue, anchor: .center)
-                        }
-                    }
                 }
             }
             .frame(height: containerHeight)
             .clipped()
-        }
-        .onChange(of: scrollPosition) { _, newValue in
-            selectedMinutes = newValue
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Focus duration")
@@ -90,9 +80,9 @@ struct ChottoTimerPicker: View {
         .accessibilityAdjustableAction { direction in
             switch direction {
             case .increment:
-                scrollPosition = min(scrollPosition + 1, maximumMinutes)
+                selectedMinutes = min(selectedMinutes + 1, maximumMinutes)
             case .decrement:
-                scrollPosition = max(scrollPosition - 1, minimumMinutes)
+                selectedMinutes = max(selectedMinutes - 1, minimumMinutes)
             @unknown default:
                 break
             }
