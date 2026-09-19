@@ -43,6 +43,6 @@ struct LoggingView: View {
 
 #Preview {
     LoggingView()
-        .environment(SessionService(protection: MockProtectionService()))
+        .environment(SessionService(protection: MockProtectionService(), repository: SessionRepository.preview))
         .environment(SessionStore())
 }

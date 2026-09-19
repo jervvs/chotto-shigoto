@@ -247,5 +247,5 @@ private struct DefaultTimerPickerSheet: View {
 
 #Preview {
     SettingsView()
-        .environment(SessionService(protection: MockProtectionService()))
+        .environment(SessionService(protection: MockProtectionService(), repository: SessionRepository.preview))
 }

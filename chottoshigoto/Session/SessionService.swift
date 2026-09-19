@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import SwiftData
 import os
 
 @Observable
@@ -8,14 +9,16 @@ final class SessionService {
     private var timer: AnyCancellable?
 
     let protection: ProtectionService
+    let repository: SessionRepository
     private let logger = Logger(subsystem: "com.jervdev.chottoshigoto", category: "SessionService")
 
-    init(protection: ProtectionService) {
+    init(protection: ProtectionService, repository: SessionRepository) {
         self.protection = protection
+        self.repository = repository
     }
 
     convenience init() {
-        self.init(protection: MockProtectionService())
+        self.init(protection: MockProtectionService(), repository: SessionRepository.preview)
     }
 
     var currentSession: FocusSession? {
@@ -32,10 +35,63 @@ final class SessionService {
         return false
     }
 
+    // MARK: - Recovery
+
+    enum RecoveryResult {
+        case noActiveSession
+        case resume(PersistedSession)
+        case expired(PersistedSession)
+    }
+
+    func recoverSession() -> RecoveryResult {
+        guard let session = repository.activeSession() else {
+            return .noActiveSession
+        }
+
+        if Date() < session.endDate {
+            return .resume(session)
+        }
+
+        repository.complete(session, at: session.endDate)
+        return .expired(session)
+    }
+
+    func resumePersistedSession(_ persisted: PersistedSession) {
+        let session = FocusSession(
+            id: persisted.id,
+            startedAt: persisted.startedAt,
+            plannedDuration: persisted.plannedDuration
+        )
+        state = .active(session)
+        startTimer()
+        Task { await applyProtection() }
+        logger.info("Resumed persisted session: \(session.id)")
+    }
+
+    func showExpiredCompletion(_ persisted: PersistedSession) {
+        let session = FocusSession(
+            id: persisted.id,
+            startedAt: persisted.startedAt,
+            endedAt: persisted.endDate,
+            plannedDuration: persisted.plannedDuration,
+            completed: true
+        )
+        state = .completed(session)
+        logger.info("Showing expired session completion: \(session.id)")
+    }
+
     // MARK: - Actions
 
     func startSession(plannedDuration: TimeInterval = 25 * 60) {
         let session = FocusSession(plannedDuration: plannedDuration)
+
+        let persisted = PersistedSession(
+            id: session.id,
+            startedAt: session.startedAt,
+            plannedDuration: session.plannedDuration
+        )
+        repository.save(persisted)
+
         state = .active(session)
         startTimer()
         Task { await applyProtection() }
@@ -46,6 +102,10 @@ final class SessionService {
         guard case .active(let session) = state else { return }
         stopTimer()
         Task { await removeProtection() }
+
+        if let persisted = repository.activeSession() {
+            repository.complete(persisted)
+        }
 
         var finished = session
         finished.endedAt = Date()
@@ -59,6 +119,14 @@ final class SessionService {
         guard case .completed(let session) = state else { return }
 
         let newSession = FocusSession(plannedDuration: session.plannedDuration)
+
+        let persisted = PersistedSession(
+            id: newSession.id,
+            startedAt: newSession.startedAt,
+            plannedDuration: newSession.plannedDuration
+        )
+        repository.save(persisted)
+
         state = .active(newSession)
         startTimer()
         Task { await applyProtection() }
@@ -73,6 +141,7 @@ final class SessionService {
     func finishSession(store: SessionStore) {
         guard case .completed(let session) = state else { return }
         store.saveSession(session)
+        deleteActivePersistedSession()
         state = .idle
         logger.info("Session finished: \(session.id)")
     }
@@ -82,6 +151,7 @@ final class SessionService {
         var logged = session
         logged.category = category
         store.saveSession(logged)
+        deleteActivePersistedSession()
         state = .idle
         logger.info("Session logged: \(logged.id) as \(category.rawValue)")
     }
@@ -89,17 +159,21 @@ final class SessionService {
     func skipLogging(store: SessionStore) {
         guard case .logging(let session) = state else { return }
         store.saveSession(session)
+        deleteActivePersistedSession()
         state = .idle
     }
 
     func discardSession() {
         stopTimer()
         Task { await removeProtection() }
+        deleteActivePersistedSession()
         state = .idle
     }
 
-    func restoreActiveSession() {
-        state = .idle
+    private func deleteActivePersistedSession() {
+        if let persisted = repository.activeSession() {
+            repository.delete(persisted)
+        }
     }
 
     // MARK: - Protection
@@ -143,5 +217,17 @@ final class SessionService {
 
     deinit {
         stopTimer()
+    }
+}
+
+// MARK: - Preview
+
+extension SessionRepository {
+    static var preview: SessionRepository {
+        let container = try! ModelContainer(
+            for: PersistedSession.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        return SessionRepository(modelContext: container.mainContext)
     }
 }
