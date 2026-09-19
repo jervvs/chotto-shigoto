@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**Chotto Shigoto** (ちょっと仕事) is a native iOS focus session app that blocks distracting apps during timed sessions, with contribution grid tracking, widget integration, and Screen Time protection.
+**Chotto Shigoto** (ちょっと仕事) is a native iOS focus session app that blocks distracting apps during timed sessions, with contribution grid tracking, widget integration, Screen Time protection, and session recovery.
 
 **English-first UI with Japanese accents.**
 
@@ -21,16 +21,17 @@
 ```
 chottoshigoto/
 ├── Domain/
-│   ├── FocusSession.swift          # Session model (timestamp-based, computed actualDuration)
+│   ├── FocusSession.swift          # In-memory session model (timestamp-based)
+│   ├── PersistedSession.swift      # SwiftData @Model for active session persistence
 │   ├── SessionCategory.swift       # reading/coding/writing/learning/work/other
 │   └── SessionState.swift          # idle/active/completed/logging enum
 ├── Session/
-│   └── SessionService.swift        # @Observable state machine, timer, protection integration
+│   └── SessionService.swift        # @Observable state machine, timer, protection, recovery
 ├── Features/
 │   ├── Home/
 │   │   ├── HomeView.swift          # Main screen: app name, timer picker, Start button
 │   │   ├── ChottoTimerPicker.swift # Horizontal ruler timer (1-180 min, per-minute ticks)
-│   │   └── AppPickerView.swift     # FamilyActivityPicker wrapper
+│   │   └── AppPickerView.swift     # FamilyActivityPicker wrapper (#if !DEBUG)
 │   ├── Focus/
 │   │   └── FocusView.swift         # Full-screen countdown (hours:minutes:seconds)
 │   ├── Completion/
@@ -40,21 +41,31 @@ chottoshigoto/
 │   ├── Progress/
 │   │   └── ProgressView.swift      # Month/Year toggle, contribution grid, Swift Charts, categories
 │   └── Settings/
-│       └── SettingsView.swift      # App Protection + Whitelist config
+│       ├── SettingsView.swift      # Default Timer, Focus Automation guide, Protection config
+│       └── FocusAutomationGuide.swift # Guide for setting up Shortcuts-based Focus automation
+├── AppIntents/
+│   ├── StartChottoIntent.swift     # Opens app + signals start session via App Groups
+│   └── ChottoShortcutsProvider.swift # Registers "Start Chotto" phrase for Siri/Shortcuts
 ├── DesignSystem/
 │   └── ChottoColors.swift          # cream/sage/charcoal palette + grid colors
 ├── Persistence/
-│   └── SessionStore.swift          # JSON file persistence (chotto_history.json)
+│   ├── SessionStore.swift          # JSON file persistence (chotto_history.json)
+│   ├── SessionRepository.swift     # SwiftData CRUD wrapper for PersistedSession
+│   └── SharedDefaults.swift        # App Group shared UserDefaults for intent communication
 ├── FocusProtection/
-│   └── FocusProtectionService.swift # FamilyControls + ManagedSettings, whitelist support
+│   ├── ProtectionService.swift     # Protocol (3 methods)
+│   ├── MockProtectionService.swift # DEBUG: mock impl, zero FamilyControls deps
+│   └── ScreenTimeProtectionService.swift # RELEASE: real impl (#if !DEBUG)
 ├── Widgets/
 │   └── ChottoWidget/
 │       ├── ChottoWidget.swift      # idle/active/completed states
 │       ├── ChottoWidgetBundle.swift
-│       └── StartChottoIntent.swift
-├── ContentView.swift               # RootView: TabView (Home/Progress/Settings)
-├── chottoshigotoApp.swift          # App entry, owns SessionService + SessionStore
-└── chottoshigoto.entitlements      # family-controls entitlement
+│       └── StartChottoIntent.swift # WidgetStartChottoIntent (opens app + signals)
+├── ContentView.swift               # RootView: TabView or FocusView based on session state
+├── chottoshigotoApp.swift          # App entry, recovery, SessionService + SwiftData container
+├── chottoshigoto.entitlements      # App Group entitlement
+└── Widgets/ChottoWidget/
+    └── ChottoWidget.entitlements   # App Group entitlement
 ```
 
 ## Design Tokens
@@ -86,22 +97,37 @@ Color.chottoGridLevel4     // RGB(0.35, 0.52, 0.33)
 ## App Flow
 
 ```
-Home (timer picker) → Focus (countdown) → Completion (お疲れ様でした) → Logging (category) → Home
+App Launch
+    │
+    ▼
+Recover Session (SwiftData)
+    │
+    ├── Active + future → FocusView (no tabs)
+    ├── Active + expired → CompletionView
+    └── No session → Home (TabView)
+                         │
+                    Start Timer
+                         │
+                         ▼
+                    Focus (countdown) → Completion → Logging → Home
                                          ↘ More chotto → Focus (reuse same duration)
                                          ↘ Finish → Logging → Home
 ```
 
 ### Key Behaviors
-- **Timer picker**: 1–180 minutes, per-minute increments, labels every 5 min, horizontal drag, haptics, AppStorage persistence (default 25 min)
+- **Default timer**: Configurable in Settings (1–180 min), Home reads from `@AppStorage("defaultTimerMinutes")` on appear
+- **Timer picker**: 1–180 minutes, per-minute increments, labels every 5 min, smooth scroll with `.scrollTargetBehavior(.viewAligned)`
 - **Duration display**: Shows `HH:MM:SS` when over 1 hour, `MM:SS` otherwise
 - **"Start Timer"** is the exact button text (English)
 - **"More chotto"** reuses the same duration as the completed session
 - **Finish** goes to Logging page (category picker), then saves and returns to Home
 - **Logging page** can be skipped via "Skip" button
+- **Session recovery**: App detects active/expired sessions on launch via SwiftData
+- **Navigation lock**: Active session shows FocusView only — no tabs, no navigation
 
 ## Models
 
-### FocusSession
+### FocusSession (in-memory)
 ```swift
 struct FocusSession: Identifiable, Codable {
     let id: UUID
@@ -112,11 +138,28 @@ struct FocusSession: Identifiable, Codable {
     var category: SessionCategory?
 
     var actualDuration: TimeInterval  // computed from timestamps
-    func remainingSeconds(at: Date: TimeInterval  // computed
+    func remainingSeconds(at: Date) -> TimeInterval  // computed
 }
 ```
 
-### SessionRecord (persistence)
+### PersistedSession (SwiftData)
+```swift
+@Model
+final class PersistedSession {
+    var id: UUID
+    var startedAt: Date
+    var plannedDuration: TimeInterval
+    var completedAt: Date?
+    var categoryRaw: String?
+
+    var endDate: Date { startedAt.addingTimeInterval(plannedDuration) }
+    var isActive: Bool { completedAt == nil }
+    var actualDuration: TimeInterval { ... }
+    var category: SessionCategory? { get/set }
+}
+```
+
+### SessionRecord (JSON history)
 ```swift
 struct SessionRecord: Codable, Identifiable {
     let id: UUID
@@ -137,19 +180,51 @@ enum SessionCategory: String, CaseIterable, Codable {
 ## SessionService State Machine
 
 ```
-.idle → startSession() → .active(session)
-.active → completeSession() → .completed(session)
-.completed → moreChotto() → .active(newSession)
+.idle → startSession() → .active(session) [persists to SwiftData]
+.active → completeSession() → .completed(session) [marks SwiftData complete]
+.completed → moreChotto() → .active(newSession) [persists new session]
 .completed → proceedToLogging() → .logging(session)
-.logging → logCategory() → .idle (saves session)
-.logging → skipLogging() → .idle (saves session)
+.logging → logCategory() → .idle [saves to history JSON, deletes active]
+.logging → skipLogging() → .idle [saves to history JSON, deletes active]
 ```
+
+### Launch Recovery
+```
+recoverSession() → .noActiveSession | .resume(session) | .expired(session)
+```
+- `.resume` → `resumePersistedSession()` → enters FocusView with timer
+- `.expired` → `showExpiredCompletion()` → shows CompletionView
+- `.noActiveSession` → normal Home
+
+## Settings
+
+### Default Timer
+- `@AppStorage("defaultTimerMinutes")` — persists preferred duration (default: 25)
+- Typable text field (1–180 min) in Settings
+- Home timer initializes from this value on appear
+
+### Focus Automation
+- Guide explains how to create personal automations in Shortcuts app
+- Trigger: App → Chotto → Is Opened → Set Focus On
+- Trigger: App → Chotto → Is Closed → Set Focus Off
+- Chotto cannot directly control system Focus — this is an Apple limitation
+
+## App Intents
+
+### StartChottoIntent
+- Opens the app (`openAppWhenRun = true`)
+- Signals start session via shared UserDefaults (`SharedDefaults.signalStartSession()`)
+- App detects signal on launch and auto-starts with default timer
+
+### ChottoShortcutsProvider
+- Registers "Start Chotto" phrase for Siri/Shortcuts
+- Phrases: "Start a chotto in Chotto", "Start focus session in Chotto"
 
 ## Progress Page
 
 ### Month View
-- Contribution grid (week columns, day rows, M/W/F labels removed — shows all S-M-T-W-T-F-S)
-- Practice section: Chottos/week bar chart + Average Chotto line chart (Swift Charts)
+- Contribution grid (week columns, day rows, S-M-T-W-T-F-S)
+- Practice section: Chottos/week bar chart (W1, W2, W3...) + Average Chotto line chart
 - Category breakdown: horizontal bars with counts
 
 ### Year View
@@ -162,9 +237,11 @@ All progress data is **derived from SessionStore.history** — no pre-aggregated
 
 ## Screen Time Protection
 
-### Entitlements
-- `chottoshigoto.entitlements`: `com.apple.developer.family-controls`
-- `ChottoWidget.entitlements`: `com.apple.developer.family-controls` + `com.apple.developer.managed-settings`
+### Architecture
+- `ProtectionService` protocol (3 methods: requestAuthorization, activate, deactivate)
+- `MockProtectionService` (#if DEBUG) — no FamilyControls dependency
+- `ScreenTimeProtectionService` (#else) — real FamilyControls + ManagedSettings
+- Injected via `SessionService(protection:)` protocol injection
 
 ### Flow
 1. User taps "Set up" in Settings
@@ -181,21 +258,24 @@ All progress data is **derived from SessionStore.history** — no pre-aggregated
 ## Widget
 
 - **States**: idle (chotto 仕事), active (仕事中 + remaining), completed (お疲れ様でした)
-- **Entry**: `ChottoWidgetBundle`, `StartChottoIntent` for quick start from widget
+- **WidgetStartChottoIntent**: Opens app + signals start session via App Groups
+- **App Group**: `group.com.jervdev.chottoshigoto` — shared UserDefaults for intent communication
 
 ## Git Workflow
 
-- **Branch**: `feat/slice-1-core-session-engine` (not pushed)
+- **Branch**: `feat/session-recovery-default-timer`
 - **Xcode project**: `project.pbxproj` uses `PBXFileSystemSynchronizedRootGroup` (objectVersion 77) — files in tracked directories are auto-included
 - **Shared scheme**: `chottoshigoto.xcodeproj/xcshareddata/xcschemes/chottoshigoto.xcscheme`
 - **Development team**: `QHSJ4Z34B8` is set in project.pbxproj
+- **App Group**: `group.com.jervdev.chottoshigoto` (both entitlements files)
 
 ## Known Issues / TODO
 
 1. **App protection persistence**: `ApplicationToken` objects are ephemeral. Need to implement bundle ID persistence for production.
 2. **Timer picker logo**: Logo should be placed above the timer display in HomeView (48x48pt, image named "logo" in Assets.xcassets).
 3. **Year view empty state**: Year view shows empty charts when no data exists for future months.
-4. **Widget entitlements**: Widget extension entitlements need to be configured for production.
+4. **Widget App Groups**: Widget reads from shared UserDefaults but doesn't yet display active session state.
+5. **Focus automation**: System Focus integration requires user to create personal automations in Shortcuts app. Chotto cannot directly control system Focus.
 
 ## Conventions
 
