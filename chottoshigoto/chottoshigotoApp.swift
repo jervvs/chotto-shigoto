@@ -61,5 +61,8 @@ struct chottoshigotoApp: App {
                 sessionService.startSession(plannedDuration: duration)
             }
         }
+
+        // Always clear any stale signal to prevent ghost sessions
+        SharedDefaults.clearStartSessionSignal()
     }
 }

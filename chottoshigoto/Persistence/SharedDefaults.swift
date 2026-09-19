@@ -3,21 +3,21 @@ import Foundation
 enum SharedDefaults {
     static let suiteName = "group.com.jervdev.chottoshigoto"
 
-    static var shared: UserDefaults? {
-        UserDefaults(suiteName: suiteName)
-    }
+    private static let sharedDefaults = UserDefaults(suiteName: suiteName)
 
     private static let startSessionKey = "pendingStartSession"
 
     static func signalStartSession() {
-        shared?.set(true, forKey: startSessionKey)
-        shared?.synchronize()
+        sharedDefaults?.set(true, forKey: startSessionKey)
     }
 
     static func consumeStartSessionSignal() -> Bool {
-        guard shared?.bool(forKey: startSessionKey) == true else { return false }
-        shared?.removeObject(forKey: startSessionKey)
-        shared?.synchronize()
+        guard sharedDefaults?.bool(forKey: startSessionKey) == true else { return false }
+        sharedDefaults?.removeObject(forKey: startSessionKey)
         return true
+    }
+
+    static func clearStartSessionSignal() {
+        sharedDefaults?.removeObject(forKey: startSessionKey)
     }
 }
