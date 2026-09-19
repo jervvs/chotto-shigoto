@@ -53,7 +53,13 @@ struct chottoshigotoApp: App {
         case .expired(let session):
             sessionService.showExpiredCompletion(session)
         case .noActiveSession:
-            break
+            // Check if intent signaled to start a session
+            if SharedDefaults.consumeStartSessionSignal() {
+                let defaults = UserDefaults.standard
+                let minutes = defaults.integer(forKey: "defaultTimerMinutes")
+                let duration = TimeInterval((minutes > 0 ? minutes : 25) * 60)
+                sessionService.startSession(plannedDuration: duration)
+            }
         }
     }
 }

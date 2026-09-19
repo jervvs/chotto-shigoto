@@ -76,13 +76,7 @@ struct FocusAutomationGuide: View {
                         ActionRow(
                             icon: "timer",
                             name: "Start Chotto",
-                            description: "Starts a focus session with your default timer duration"
-                        )
-
-                        ActionRow(
-                            icon: "timer.circle.fill",
-                            name: "End Chotto",
-                            description: "Ends the current focus session"
+                            description: "Opens Chotto and starts a focus session with your default timer"
                         )
                     }
                     .padding(12)

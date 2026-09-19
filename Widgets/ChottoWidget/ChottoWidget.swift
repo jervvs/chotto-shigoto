@@ -52,7 +52,7 @@ struct ChottoWidgetEntryView: View {
             Text("Set timer in app")
                 .font(.system(size: 12, weight: .regular))
                 .foregroundStyle(.secondary)
-            Button(intent: StartChottoIntent()) {
+            Button(intent: WidgetStartChottoIntent()) {
                 Text("Start")
                     .font(.system(size: 14, weight: .medium))
                     .padding(.horizontal, 16)
@@ -78,7 +78,7 @@ struct ChottoWidgetEntryView: View {
         VStack(spacing: 4) {
             Text("お疲れ様でした。")
                 .font(.system(size: 14, weight: .light, design: .serif))
-            Button(intent: StartChottoIntent()) {
+            Button(intent: WidgetStartChottoIntent()) {
                 Text("mou chotto")
                     .font(.system(size: 12, weight: .medium))
                     .padding(.horizontal, 12)
