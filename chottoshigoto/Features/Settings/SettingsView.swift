@@ -40,6 +40,30 @@ struct SettingsView: View {
                     Text("This sets the initial timer when you open the app. You can always adjust it before starting.")
                 }
 
+                // Focus Automation
+                Section {
+                    NavigationLink {
+                        FocusAutomationGuide()
+                    } label: {
+                        HStack {
+                            Image(systemName: "moon.zzz")
+                                .foregroundStyle(Color.chottoSage)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("System Focus")
+                                    .font(.system(size: 16, weight: .medium))
+                                Text("Set up via Shortcuts")
+                                    .font(.system(size: 13))
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                } header: {
+                    Text("Focus Automation")
+                } footer: {
+                    Text("Chotto can integrate with iOS Focus modes through the Shortcuts app.")
+                }
+
                 // Protection Section
                 Section {
                     #if DEBUG
