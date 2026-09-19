@@ -7,11 +7,15 @@ final class SessionService {
     private(set) var state: SessionState = .idle
     private var timer: AnyCancellable?
 
-    private let protection: ProtectionService
+    let protection: ProtectionService
     private let logger = Logger(subsystem: "com.jervdev.chottoshigoto", category: "SessionService")
 
     init(protection: ProtectionService) {
         self.protection = protection
+    }
+
+    convenience init() {
+        self.init(protection: MockProtectionService())
     }
 
     var currentSession: FocusSession? {

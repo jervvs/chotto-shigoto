@@ -9,8 +9,8 @@ struct SettingsView: View {
     @State private var needsAuthorization = false
     @State private var newWhitelistBundleId = ""
 
-    private var protection: FocusProtectionService {
-        sessionService.protection
+    private var protection: ScreenTimeProtectionService {
+        sessionService.protection as! ScreenTimeProtectionService
     }
 
     var body: some View {
@@ -124,10 +124,10 @@ struct SettingsView: View {
     }
 
     private func authorizeAndPick() async {
-        let authorized = await protection.requestAuthorization()
-        if authorized {
+        do {
+            try await protection.requestAuthorization()
             showAppPicker = true
-        } else {
+        } catch {
             needsAuthorization = true
         }
     }

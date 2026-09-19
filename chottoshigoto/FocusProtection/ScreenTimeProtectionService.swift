@@ -50,7 +50,7 @@ final class ScreenTimeProtectionService: ProtectionService {
         }
         store.shield.applications = Set(selectedApps)
         isProtecting = true
-        logger.info("Shielded \(selectedApps.count) apps")
+        logger.info("Shielded \(self.selectedApps.count) apps")
     }
 
     func deactivate() async throws {
