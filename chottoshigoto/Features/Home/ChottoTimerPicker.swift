@@ -1,5 +1,4 @@
 import SwiftUI
-import UIKit
 
 struct ChottoTimerPicker: View {
     @Binding var selectedMinutes: Int
@@ -7,35 +6,38 @@ struct ChottoTimerPicker: View {
     let minimumMinutes = 1
     let maximumMinutes = 180
 
-    private let pointsPerMinute: CGFloat = 14
+    private let tickWidth: CGFloat = 14
     private let containerHeight: CGFloat = 140
 
-    @State private var lastHapticMinute: Int = 0
-
-    private var minuteOffset: CGFloat {
-        CGFloat(selectedMinutes - minimumMinutes) * pointsPerMinute
-    }
+    @State private var scrollPosition: Int = 25
 
     var body: some View {
         VStack(spacing: 0) {
-            // Ruler area
             GeometryReader { geometry in
                 let centerX = geometry.size.width / 2
 
-                ZStack {
-                    // Tick marks (scrollable content)
+                ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 0) {
                         ForEach(minimumMinutes...maximumMinutes, id: \.self) { minute in
                             TickMark(
                                 minute: minute,
-                                isSelected: minute == selectedMinutes
+                                isSelected: minute == scrollPosition
                             )
-                            .frame(width: pointsPerMinute)
+                            .frame(width: tickWidth)
+                            .id(minute)
                         }
                     }
-                    .offset(x: centerX - minuteOffset - pointsPerMinute / 2)
-
-                    // Fixed center indicator
+                    .scrollTargetLayout()
+                }
+                .scrollPosition(id: Binding(
+                    get: { scrollPosition },
+                    set: { if let v = $0 { scrollPosition = v } }
+                ))
+                .scrollTargetBehavior(.viewAligned)
+                .scrollBounceBehavior(.basedOnSize)
+                .safeAreaPadding(.horizontal, centerX - tickWidth / 2)
+                .sensoryFeedback(.selection, trigger: scrollPosition)
+                .overlay(alignment: .bottom) {
                     VStack(spacing: 0) {
                         Triangle()
                             .fill(Color.chottoSage)
@@ -44,9 +46,10 @@ struct ChottoTimerPicker: View {
                             .fill(Color.chottoSage)
                             .frame(width: 2, height: 10)
                     }
-                    .position(x: centerX, y: containerHeight - 16)
-
-                    // Left fade
+                    .offset(y: -8)
+                    .allowsHitTesting(false)
+                }
+                .overlay(alignment: .leading) {
                     LinearGradient(
                         colors: [Color.chottoCream, .clear],
                         startPoint: .leading,
@@ -54,40 +57,25 @@ struct ChottoTimerPicker: View {
                     )
                     .frame(width: 50)
                     .allowsHitTesting(false)
-
-                    // Right fade
+                }
+                .overlay(alignment: .trailing) {
                     LinearGradient(
                         colors: [Color.chottoCream, .clear],
                         startPoint: .trailing,
                         endPoint: .leading
                     )
                     .frame(width: 50)
-                    .position(x: geometry.size.width - 25, y: 0)
                     .allowsHitTesting(false)
                 }
-                .frame(height: containerHeight)
-                .contentShape(Rectangle())
-                .gesture(
-                    DragGesture(minimumDistance: 1)
-                        .onChanged { value in
-                            let delta = -value.translation.width / pointsPerMinute
-                            let minuteDelta = Int(round(delta))
-                            let proposed = min(
-                                max(selectedMinutes + minuteDelta, minimumMinutes),
-                                maximumMinutes
-                            )
-                            if proposed != selectedMinutes {
-                                triggerHaptic(for: proposed)
-                                selectedMinutes = proposed
-                            }
-                        }
-                        .onEnded { _ in
-                            let haptic = UIImpactFeedbackGenerator(style: .light)
-                            haptic.impactOccurred()
-                        }
-                )
             }
             .frame(height: containerHeight)
+            .clipped()
+        }
+        .onChange(of: scrollPosition) { _, newValue in
+            selectedMinutes = newValue
+        }
+        .onAppear {
+            scrollPosition = selectedMinutes
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Focus duration")
@@ -95,20 +83,12 @@ struct ChottoTimerPicker: View {
         .accessibilityAdjustableAction { direction in
             switch direction {
             case .increment:
-                selectedMinutes = min(selectedMinutes + 1, maximumMinutes)
+                scrollPosition = min(scrollPosition + 1, maximumMinutes)
             case .decrement:
-                selectedMinutes = max(selectedMinutes - 1, minimumMinutes)
+                scrollPosition = max(scrollPosition - 1, minimumMinutes)
             @unknown default:
                 break
             }
-        }
-    }
-
-    private func triggerHaptic(for minute: Int) {
-        if minute != lastHapticMinute {
-            lastHapticMinute = minute
-            let generator = UISelectionFeedbackGenerator()
-            generator.selectionChanged()
         }
     }
 }

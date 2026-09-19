@@ -26,6 +26,11 @@ struct ProgressView: View {
                     }
                     .pickerStyle(.segmented)
                     .padding(.horizontal, 4)
+                    .onChange(of: viewMode) { _, newMode in
+                        if newMode == .month {
+                            withAnimation { selectedMonth = Date() }
+                        }
+                    }
 
                     // Content
                     switch viewMode {
@@ -33,6 +38,14 @@ struct ProgressView: View {
                         monthContent
                     case .year:
                         yearContent
+                    }
+
+                    // Year indicator when not viewing current year
+                    if !isCurrentYear {
+                        Text("\(currentYear)")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(.secondary)
+                            .padding(.top, 4)
                     }
 
                     Spacer(minLength: 40)
@@ -151,7 +164,7 @@ struct ProgressView: View {
     // MARK: - Practice Section (Month)
 
     private var practiceSection: some View {
-        VStack(alignment: .leading, spacing: 20) {
+        VStack(alignment: .center, spacing: 20) {
             Text("Practice")
                 .font(.system(size: 20, weight: .light, design: .serif))
 
@@ -338,7 +351,7 @@ struct ProgressView: View {
     // MARK: - Categories
 
     private var categorySection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .center, spacing: 12) {
             Text("What you practiced")
                 .font(.system(size: 20, weight: .light, design: .serif))
 
@@ -410,6 +423,14 @@ struct ProgressView: View {
         case .year:
             return cal.isDate(selectedMonth, equalTo: Date(), toGranularity: .year)
         }
+    }
+
+    private var isCurrentYear: Bool {
+        Calendar.current.component(.year, from: selectedMonth) == Calendar.current.component(.year, from: Date())
+    }
+
+    private var currentYear: Int {
+        Calendar.current.component(.year, from: selectedMonth)
     }
 
     private func changePeriod(by value: Int) {
