@@ -33,6 +33,7 @@ struct RootView: View {
                             Label("Settings", systemImage: "gearshape")
                         }
                 }
+                .transition(.opacity)
 
             case .logging:
                 LoggingView()

@@ -29,7 +29,30 @@ struct chottoshigotoApp: App {
         modelContainer = container
 
         let repository = SessionRepository(modelContext: container.mainContext)
-        _sessionService = State(initialValue: SessionService(protection: protection, repository: repository))
+        let service = SessionService(protection: protection, repository: repository)
+
+        // Recover session before view appears — no transition needed
+        let result = service.recoverSession()
+        _recoveryResult = State(initialValue: result)
+
+        switch result {
+        case .resume(let session):
+            service.resumePersistedSession(session)
+        case .expired(let session):
+            service.showExpiredCompletion(session)
+        case .noActiveSession:
+            break
+        }
+
+        // Consume signal on cold launch (not yet running)
+        if SharedDefaults.consumeStartSessionSignal() {
+            let defaults = UserDefaults.standard
+            let minutes = defaults.integer(forKey: "defaultTimerMinutes")
+            let duration = TimeInterval((minutes > 0 ? minutes : 25) * 60)
+            service.startSession(plannedDuration: duration)
+        }
+
+        _sessionService = State(initialValue: service)
     }
 
     var body: some Scene {
@@ -38,9 +61,6 @@ struct chottoshigotoApp: App {
                 .environment(sessionService)
                 .environment(sessionStore)
                 .modelContainer(modelContainer)
-                .onAppear {
-                    handleRecovery()
-                }
                 .onChange(of: scenePhase) { _, phase in
                     if phase == .active {
                         handleSignalWhileRunning()
@@ -49,35 +69,13 @@ struct chottoshigotoApp: App {
         }
     }
 
-    private func handleRecovery() {
-        let result = sessionService.recoverSession()
-        recoveryResult = result
-
-        switch result {
-        case .resume(let session):
-            sessionService.resumePersistedSession(session)
-        case .expired(let session):
-            sessionService.showExpiredCompletion(session)
-        case .noActiveSession:
-            break
-        }
-
-        if SharedDefaults.consumeStartSessionSignal() {
-            startSessionFromSignal()
-        }
-    }
-
     private func handleSignalWhileRunning() {
         guard case .idle = sessionService.state else { return }
         if SharedDefaults.consumeStartSessionSignal() {
-            startSessionFromSignal()
+            let defaults = UserDefaults.standard
+            let minutes = defaults.integer(forKey: "defaultTimerMinutes")
+            let duration = TimeInterval((minutes > 0 ? minutes : 25) * 60)
+            sessionService.startSession(plannedDuration: duration)
         }
-    }
-
-    private func startSessionFromSignal() {
-        let defaults = UserDefaults.standard
-        let minutes = defaults.integer(forKey: "defaultTimerMinutes")
-        let duration = TimeInterval((minutes > 0 ? minutes : 25) * 60)
-        sessionService.startSession(plannedDuration: duration)
     }
 }
