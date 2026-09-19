@@ -33,15 +33,15 @@ struct CompletionView: View {
                 Text("お疲れ様でした。")
                     .font(.system(size: 36, weight: .light, design: .serif))
 
-                Text("Thank you for your hard work.")
-                    .font(.system(size: 20, weight: .regular, design: .monospaced))
-                    .padding(.horizontal, 12)
-                    .foregroundStyle(.secondary)
-                
-                Text("You completed \(durationText) of focused work.")
-                    .font(.system(size: 18, weight: .regular, design: .monospaced))
-                    .padding(.horizontal, 12)
-                    .foregroundStyle(.secondary)
+                VStack(spacing: 4) {
+                    Text("Thank you for your hard work.")
+                        .font(.system(size: 18, weight: .regular))
+                        .foregroundStyle(.secondary)
+
+                    Text("You completed \(durationText) of focused work.")
+                        .font(.system(size: 18, weight: .regular))
+                        .foregroundStyle(.secondary)
+                }
             }
 
             Spacer()

@@ -72,6 +72,7 @@ struct ChottoTimerPicker: View {
                         proxy.scrollTo(selectedMinutes, anchor: .center)
                     }
                 }
+            }
             .frame(height: containerHeight)
             .clipped()
         }
