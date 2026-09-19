@@ -48,21 +48,27 @@ struct chottoshigotoApp: App {
         recoveryResult = result
 
         switch result {
-        case .resume(let session):
-            sessionService.resumePersistedSession(session)
+        case .resume:
+            // Don't resume on launch — go to Home instead
+            // Clean up any orphaned active session
+            if let persisted = sessionService.repository.activeSession() {
+                sessionService.repository.delete(persisted)
+            }
+            recoveryResult = .noActiveSession
+
         case .expired(let session):
             sessionService.showExpiredCompletion(session)
+
         case .noActiveSession:
-            // Check if intent signaled to start a session
-            if SharedDefaults.consumeStartSessionSignal() {
-                let defaults = UserDefaults.standard
-                let minutes = defaults.integer(forKey: "defaultTimerMinutes")
-                let duration = TimeInterval((minutes > 0 ? minutes : 25) * 60)
-                sessionService.startSession(plannedDuration: duration)
-            }
+            break
         }
 
-        // Always clear any stale signal to prevent ghost sessions
-        SharedDefaults.clearStartSessionSignal()
+        // Check if intent signaled to start a session
+        if SharedDefaults.consumeStartSessionSignal() {
+            let defaults = UserDefaults.standard
+            let minutes = defaults.integer(forKey: "defaultTimerMinutes")
+            let duration = TimeInterval((minutes > 0 ? minutes : 25) * 60)
+            sessionService.startSession(plannedDuration: duration)
+        }
     }
 }
