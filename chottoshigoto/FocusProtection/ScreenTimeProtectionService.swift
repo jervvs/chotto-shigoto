@@ -18,6 +18,7 @@ final class ScreenTimeProtectionService: ProtectionService {
     init() {
         whitelistedApps = Self.defaultWhitelistedApps
         loadWhitelist()
+        isAuthorized = UserDefaults.standard.bool(forKey: "screenTimeAuthorized")
     }
 
     // MARK: - Default Whitelist (high-priority alert apps)
@@ -36,10 +37,12 @@ final class ScreenTimeProtectionService: ProtectionService {
         do {
             try await center.requestAuthorization(for: .individual)
             isAuthorized = true
+            UserDefaults.standard.set(true, forKey: "screenTimeAuthorized")
             logger.info("Authorization granted")
         } catch {
             logger.error("Authorization failed: \(error.localizedDescription)")
             isAuthorized = false
+            UserDefaults.standard.set(false, forKey: "screenTimeAuthorized")
             throw error
         }
     }
@@ -76,6 +79,11 @@ final class ScreenTimeProtectionService: ProtectionService {
     // MARK: - Whitelist
 
     func addToWhitelist(bundleId: String) {
+        guard !bundleId.isEmpty else { return }
+        guard bundleId.contains(".") else {
+            logger.warning("Invalid bundle ID format: \(bundleId)")
+            return
+        }
         guard !whitelistedApps.contains(bundleId) else { return }
         whitelistedApps.append(bundleId)
         saveWhitelist()

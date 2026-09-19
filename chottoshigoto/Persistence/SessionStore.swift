@@ -77,7 +77,7 @@ final class SessionStore {
     private func persist() {
         do {
             let data = try JSONEncoder().encode(history)
-            try data.write(to: fileURL(), options: .atomic)
+            try data.write(to: fileURL(), options: [.atomic, .completeFileProtection])
         } catch {
             logger.error("Failed to save history: \(error.localizedDescription)")
         }
