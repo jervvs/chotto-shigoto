@@ -98,21 +98,28 @@ Color.chottoGridLevel4     // RGB(0.35, 0.52, 0.33)
 ## App Flow
 
 ```
-App Launch
+App Launch (init)
     │
-    ▼
-Recover Session (SwiftData)
+    ├── Recover Session (SwiftData)
+    │   ├── Active + future → FocusView (no tabs)
+    │   └── Active + expired → CompletionView
     │
-    ├── Active + future → FocusView (no tabs)
-    ├── Active + expired → CompletionView
-    └── No session → Home (TabView)
-                         │
-                    Start Timer
-                         │
-                         ▼
-                    Focus (countdown) → Completion → Logging → Home
-                                         ↘ More chotto → Focus (reuse same duration)
-                                         ↘ Finish → Logging → Home
+    ├── Consume Start Signal (SharedDefaults)
+    │   └── Signal exists + idle → start session → FocusView
+    │
+    └── No session, no signal → Home (TabView)
+                                    │
+                               Start Timer / Shortcut
+                                    │
+                                    ▼
+                               Focus (countdown) → Completion → Logging → Home
+                                                    ↘ More chotto → Focus (reuse same duration)
+                                                    ↘ Finish → Logging → Home
+
+Foreground Re-entry (scenePhase → .active)
+    │
+    ├── Session already active → ignore signal
+    └── Idle + signal exists → start session → FocusView
 ```
 
 ### Key Behaviors
@@ -196,6 +203,7 @@ recoverSession() → .noActiveSession | .resume(session) | .expired(session)
 - `.resume` → `resumePersistedSession()` → enters FocusView with timer
 - `.expired` → `showExpiredCompletion()` → shows CompletionView
 - `.noActiveSession` → normal Home
+- Recovery happens in `init()` so the correct view appears immediately (no transition)
 
 ## Settings
 
@@ -213,9 +221,10 @@ recoverSession() → .noActiveSession | .resume(session) | .expired(session)
 ## App Intents
 
 ### StartChottoIntent
+- `openAppWhenRun = true` — brings app to foreground
 - Signals start session via shared UserDefaults (`SharedDefaults.signalStartSession()`)
 - Returns end time as `Date` variable for Shortcuts automation
-- Does NOT open the app — user adds "Open App" action separately if needed
+- Signal is ignored if a session is already active
 
 ### GetEndTimeIntent
 - Returns end time of current active session, or `nil` if no session
@@ -225,13 +234,18 @@ recoverSession() → .noActiveSession | .resume(session) | .expired(session)
 - Registers phrases for Siri/Shortcuts
 - Phrases: "Start a chotto in Chotto", "Get chotto end time in Chotto"
 
+### Signal Communication (SharedDefaults)
+- Intent writes `pendingStartSession = true` to App Group UserDefaults
+- App consumes the signal on **cold launch** (in `init()`) and on **foreground entry** (`scenePhase` → `.active`)
+- Signal is only consumed when state is `.idle` — ignored if session is already active
+- `SharedDefaults` uses a cached `UserDefaults` instance for reliable persistence
+
 ### Shortcuts Automation Flow
 ```
-1. Start Chotto        → provides "End Time" variable
-2. Open Chotto         → (optional, starts the session)
-3. Set Focus On        → turns on Work Focus
-4. Wait until End Time → (optional)
-5. Set Focus Off       → turns off Work Focus
+1. Start Chotto        → provides "End Time" variable, opens app
+2. Set Focus On        → turns on Work Focus
+3. Wait until End Time → (optional)
+4. Set Focus Off       → turns off Work Focus
 ```
 
 ## Progress Page
