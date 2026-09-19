@@ -52,6 +52,6 @@ struct RootView: View {
 
 #Preview {
     RootView()
-        .environment(SessionService())
+        .environment(SessionService(protection: MockProtectionService()))
         .environment(SessionStore())
 }

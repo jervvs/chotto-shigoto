@@ -64,5 +64,5 @@ struct FocusView: View {
 
 #Preview {
     FocusView()
-        .environment(SessionService())
+        .environment(SessionService(protection: MockProtectionService()))
 }

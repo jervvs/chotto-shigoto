@@ -76,6 +76,6 @@ struct HomeView: View {
 
 #Preview {
     HomeView()
-        .environment(SessionService())
+        .environment(SessionService(protection: MockProtectionService()))
         .environment(SessionStore())
 }

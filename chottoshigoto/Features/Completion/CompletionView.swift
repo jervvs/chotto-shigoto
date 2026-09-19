@@ -83,6 +83,6 @@ struct CompletionView: View {
 
 #Preview {
     CompletionView()
-        .environment(SessionService())
+        .environment(SessionService(protection: MockProtectionService()))
         .environment(SessionStore())
 }
