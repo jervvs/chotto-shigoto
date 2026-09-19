@@ -16,66 +16,67 @@ struct ChottoTimerPicker: View {
             GeometryReader { geometry in
                 let centerX = geometry.size.width / 2
 
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 0) {
-                        ForEach(minimumMinutes...maximumMinutes, id: \.self) { minute in
-                            TickMark(
-                                minute: minute,
-                                isSelected: minute == scrollPosition
-                            )
-                            .frame(width: tickWidth)
-                            .id(minute)
+                ScrollViewReader { proxy in
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 0) {
+                            ForEach(minimumMinutes...maximumMinutes, id: \.self) { minute in
+                                TickMark(
+                                    minute: minute,
+                                    isSelected: minute == scrollPosition
+                                )
+                                .frame(width: tickWidth)
+                                .id(minute)
+                            }
                         }
+                        .scrollTargetLayout()
                     }
-                    .scrollTargetLayout()
-                }
-                .scrollPosition(id: Binding(
-                    get: { scrollPosition },
-                    set: { if let v = $0 { scrollPosition = v } }
-                ))
-                .scrollTargetBehavior(.viewAligned)
-                .scrollBounceBehavior(.basedOnSize)
-                .safeAreaPadding(.horizontal, centerX - tickWidth / 2)
-                .sensoryFeedback(.selection, trigger: scrollPosition)
-                .overlay(alignment: .bottom) {
-                    VStack(spacing: 0) {
-                        Triangle()
-                            .fill(Color.chottoSage)
-                            .frame(width: 10, height: 7)
-                        Rectangle()
-                            .fill(Color.chottoSage)
-                            .frame(width: 2, height: 10)
+                    .scrollPosition(id: Binding(
+                        get: { scrollPosition },
+                        set: { if let v = $0 { scrollPosition = v } }
+                    ))
+                    .scrollTargetBehavior(.viewAligned)
+                    .scrollBounceBehavior(.basedOnSize)
+                    .safeAreaPadding(.horizontal, centerX - tickWidth / 2)
+                    .sensoryFeedback(.selection, trigger: scrollPosition)
+                    .overlay(alignment: .bottom) {
+                        VStack(spacing: 0) {
+                            Triangle()
+                                .fill(Color.chottoSage)
+                                .frame(width: 10, height: 7)
+                            Rectangle()
+                                .fill(Color.chottoSage)
+                                .frame(width: 2, height: 10)
+                        }
+                        .offset(y: -8)
+                        .allowsHitTesting(false)
                     }
-                    .offset(y: -8)
-                    .allowsHitTesting(false)
+                    .overlay(alignment: .leading) {
+                        LinearGradient(
+                            colors: [Color.chottoCream, .clear],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                        .frame(width: 50)
+                        .allowsHitTesting(false)
+                    }
+                    .overlay(alignment: .trailing) {
+                        LinearGradient(
+                            colors: [Color.chottoCream, .clear],
+                            startPoint: .trailing,
+                            endPoint: .leading
+                        )
+                        .frame(width: 50)
+                        .allowsHitTesting(false)
+                    }
+                    .onAppear {
+                        proxy.scrollTo(selectedMinutes, anchor: .center)
+                    }
                 }
-                .overlay(alignment: .leading) {
-                    LinearGradient(
-                        colors: [Color.chottoCream, .clear],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                    .frame(width: 50)
-                    .allowsHitTesting(false)
-                }
-                .overlay(alignment: .trailing) {
-                    LinearGradient(
-                        colors: [Color.chottoCream, .clear],
-                        startPoint: .trailing,
-                        endPoint: .leading
-                    )
-                    .frame(width: 50)
-                    .allowsHitTesting(false)
-                }
-            }
             .frame(height: containerHeight)
             .clipped()
         }
         .onChange(of: scrollPosition) { _, newValue in
             selectedMinutes = newValue
-        }
-        .onAppear {
-            scrollPosition = selectedMinutes
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Focus duration")

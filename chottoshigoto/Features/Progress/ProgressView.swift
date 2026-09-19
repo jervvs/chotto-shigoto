@@ -69,7 +69,7 @@ struct ProgressView: View {
                     Text(headerTitle)
                         .font(.system(size: 28, weight: .light, design: .serif))
 
-                    if viewMode == .year && !isCurrentYear {
+                    if viewMode == .month && !isCurrentYear {
                         Text("\(currentYear)")
                             .font(.system(size: 13, weight: .medium))
                             .foregroundStyle(.secondary)
