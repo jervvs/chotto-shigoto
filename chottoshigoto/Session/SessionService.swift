@@ -2,6 +2,8 @@ import Foundation
 import Combine
 import SwiftData
 import os
+import AVFoundation
+import UIKit
 
 @Observable
 final class SessionService {
@@ -99,6 +101,7 @@ final class SessionService {
     }
 
     func completeSession() {
+        playCompletionFeedback()
         guard case .active(let session) = state else { return }
         stopTimer()
         Task { await removeProtection() }
@@ -213,6 +216,12 @@ final class SessionService {
     private func stopTimer() {
         timer?.cancel()
         timer = nil
+    }
+
+    private func playCompletionFeedback() {
+        let generator = UIImpactFeedbackGenerator(style: .light)
+        generator.impactOccurred()
+        AudioServicesPlaySystemSound(1025)
     }
 
     deinit {
