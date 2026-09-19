@@ -1,3 +1,4 @@
+#if !DEBUG
 import Foundation
 import FamilyControls
 import ManagedSettings
@@ -103,3 +104,4 @@ final class ScreenTimeProtectionService: ProtectionService {
         }
     }
 }
+#endif

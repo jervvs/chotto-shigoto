@@ -29,6 +29,13 @@ struct SettingsView: View {
                     }
                 }
             }
+            #if !DEBUG
+            .sheet(isPresented: $showAppPicker) {
+                AppPickerView { selection in
+                    protection?.shieldApps(selection.applicationTokens)
+                }
+            }
+            #endif
             .navigationTitle("Settings")
         }
     }
