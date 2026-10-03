@@ -1,24 +1,60 @@
-//
-//  ContentView.swift
-//  chottoshigoto
-//
-//  Created by Jervis Chan on 18/9/26.
-//
-
 import SwiftUI
 
-struct ContentView: View {
+struct RootView: View {
+    @Environment(SessionService.self) private var sessionService
+    @State private var selectedTab: Tab = .home
+
+    let recoveryResult: SessionService.RecoveryResult
+
+    enum Tab {
+        case home, progress, settings
+    }
+
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+        Group {
+            switch sessionService.state {
+            case .idle:
+                TabView(selection: $selectedTab) {
+                    HomeView()
+                        .tag(Tab.home)
+                        .tabItem {
+                            Label("Home", systemImage: "house")
+                        }
+
+                    ProgressView()
+                        .tag(Tab.progress)
+                        .tabItem {
+                            Label("Progress", systemImage: "chart.bar")
+                        }
+
+                    SettingsView()
+                        .tag(Tab.settings)
+                        .tabItem {
+                            Label("Settings", systemImage: "gearshape")
+                        }
+                }
+                .transition(.opacity)
+
+            case .logging:
+                LoggingView()
+                    .transition(.opacity)
+
+            case .active:
+                FocusView()
+                    .transition(.opacity)
+
+            case .completed:
+                CompletionView()
+                    .transition(.opacity)
+            }
         }
-        .padding()
+        .animation(.easeInOut(duration: 0.4), value: sessionService.state)
+        .tint(.chottoCharcoal)
     }
 }
 
 #Preview {
-    ContentView()
+    RootView(recoveryResult: .noActiveSession)
+        .environment(SessionService(protection: MockProtectionService(), repository: SessionRepository.preview))
+        .environment(SessionStore())
 }
