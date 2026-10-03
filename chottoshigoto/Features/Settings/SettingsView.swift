@@ -3,6 +3,7 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(SessionService.self) private var sessionService
     @AppStorage("defaultTimerMinutes") private var defaultMinutes: Int = 25
+    @AppStorage("selectedShortcutName") private var selectedShortcutName: String = ""
     @State private var showTimerPicker = false
 
     var body: some View {
@@ -62,6 +63,27 @@ struct SettingsView: View {
                     Text("Focus Automation")
                 } footer: {
                     Text("Chotto can integrate with iOS Focus modes through the Shortcuts app.")
+                }
+
+                // Shortcut Trigger
+                Section {
+                    VStack(alignment: .leading, spacing: 12) {
+                        TextField("Shortcut name", text: $selectedShortcutName)
+                            .font(.system(size: 16, weight: .medium))
+                            .textInputAutocapitalization(.words)
+                            .autocorrectionDisabled()
+
+                        if !selectedShortcutName.isEmpty {
+                            Text("The \"Start Timer\" button on Home will trigger this shortcut instead of the built-in timer.")
+                                .font(.system(size: 13))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                } header: {
+                    Text("Shortcut Trigger")
+                } footer: {
+                    Text("Enter the exact name of a shortcut in the Shortcuts app. When set, the Home screen button runs this shortcut instead of starting the built-in timer.")
                 }
 
                 // Protection Section
