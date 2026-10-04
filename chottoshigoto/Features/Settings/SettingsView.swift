@@ -68,13 +68,24 @@ struct SettingsView: View {
                 // Shortcut Trigger
                 Section {
                     VStack(alignment: .leading, spacing: 12) {
-                        TextField("Shortcut name", text: $selectedShortcutName)
-                            .font(.system(size: 16, weight: .medium))
-                            .textInputAutocapitalization(.words)
+                        TextField("Shortcut Name", text: $selectedShortcutName)
+                            .font(.system(size: 16))
+                            .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
+                            .padding(12)
+                            .background(Color.chottoCream)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color.chottoSage.opacity(0.3), lineWidth: 1)
+                            )
 
                         if !selectedShortcutName.isEmpty {
-                            Text("The \"Start Timer\" button on Home will trigger this shortcut instead of the built-in timer.")
+                            Text("Button on Home screen will run this shortcut")
+                                .font(.system(size: 13))
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Text("Leave empty to use built-in timer start")
                                 .font(.system(size: 13))
                                 .foregroundStyle(.secondary)
                         }
@@ -83,7 +94,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Shortcut Trigger")
                 } footer: {
-                    Text("Enter the exact name of a shortcut in the Shortcuts app. When set, the Home screen button runs this shortcut instead of starting the built-in timer.")
+                    Text("Enter the exact name of a shortcut from the Shortcuts app. When set, the Home screen button opens the shortcut via the `shortcuts://` URL scheme, which switches to the Shortcuts app to run it.")
                 }
 
                 // Protection Section
