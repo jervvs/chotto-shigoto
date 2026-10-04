@@ -3,6 +3,7 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(SessionService.self) private var sessionService
     @AppStorage("defaultTimerMinutes") private var defaultMinutes: Int = 25
+    @AppStorage("selectedShortcutName") private var selectedShortcutName: String = ""
     @State private var showTimerPicker = false
 
     var body: some View {
@@ -62,6 +63,38 @@ struct SettingsView: View {
                     Text("Focus Automation")
                 } footer: {
                     Text("Chotto can integrate with iOS Focus modes through the Shortcuts app.")
+                }
+
+                // Shortcut Trigger
+                Section {
+                    VStack(alignment: .leading, spacing: 12) {
+                        TextField("Shortcut Name", text: $selectedShortcutName)
+                            .font(.system(size: 16))
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .padding(12)
+                            .background(Color.chottoCream)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color.chottoSage.opacity(0.3), lineWidth: 1)
+                            )
+
+                        if !selectedShortcutName.isEmpty {
+                            Text("Button on Home screen will run this shortcut")
+                                .font(.system(size: 13))
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Text("Leave empty to use built-in timer start")
+                                .font(.system(size: 13))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                } header: {
+                    Text("Shortcut Trigger")
+                } footer: {
+                    Text("Enter the exact name of a shortcut from the Shortcuts app. When set, the Home screen button opens the shortcut via the `shortcuts://` URL scheme, which switches to the Shortcuts app to run it.")
                 }
 
                 // Protection Section
