@@ -4,6 +4,7 @@ struct HomeView: View {
     @Environment(SessionService.self) private var sessionService
     @Environment(SessionStore.self) private var sessionStore
     @AppStorage("defaultTimerMinutes") private var defaultMinutes: Int = 25
+    @AppStorage("selectedShortcutName") private var selectedShortcutName: String = ""
     @State private var selectedMinutes: Int = 25
     @State private var isStarting = false
 
@@ -16,6 +17,19 @@ struct HomeView: View {
             return String(format: "%d:%02d:%02d", hrs, mins, secs)
         }
         return String(format: "%d:%02d", mins, secs)
+    }
+
+    private func triggerShortcut() {
+        let encodedName = selectedShortcutName.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        let urlString = "shortcuts://run-shortcut?name=\(encodedName)"
+        guard let url = URL(string: urlString) else { return }
+
+        UIApplication.shared.open(url, options: [:]) { success in
+            if !success {
+                print("Failed to open shortcut: \(selectedShortcutName)")
+            }
+            isStarting = false
+        }
     }
 
     var body: some View {
@@ -48,11 +62,15 @@ struct HomeView: View {
 
                 // Start Button
                 Button {
-                    isStarting = true
-                    let duration = TimeInterval(selectedMinutes * 60)
-                    sessionService.startSession(plannedDuration: duration)
+                    if selectedShortcutName.isEmpty {
+                        isStarting = true
+                        let duration = TimeInterval(selectedMinutes * 60)
+                        sessionService.startSession(plannedDuration: duration)
+                    } else {
+                        triggerShortcut()
+                    }
                 } label: {
-                    Text("Start Timer")
+                    Text(selectedShortcutName.isEmpty ? "Start Timer" : "Start Shortcut")
                         .font(.system(size: 17, weight: .medium))
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
