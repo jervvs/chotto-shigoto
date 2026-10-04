@@ -105,16 +105,49 @@ struct FocusAutomationGuide: View {
                             name: "Get Chotto End Time",
                             description: "Returns the end time of the current active session"
                         )
-                    }
-                    .padding(12)
-                    .background(Color.chottoSage.opacity(0.08))
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                }
-
-                Spacer()
+}
+                .padding(12)
+                .background(Color.chottoSage.opacity(0.08))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
             }
-            .padding(20)
+
+            // Shortcut Trigger Button
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Shortcut Trigger Button")
+                    .font(.system(size: 17, weight: .semibold))
+
+                Text("You can also configure a shortcut to run directly from Chotto's Home screen. In Settings \u{2192} Shortcut Trigger, enter the exact name of your shortcut. The main button will change to \"Start Shortcut\" and launch it via the Shortcuts URL scheme.")
+                    .font(.system(size: 15))
+                    .foregroundStyle(.secondary)
+
+                Text("This is useful if you want a single shortcut that starts Chotto, enables Focus mode, and optionally does other actions (like playing a focus playlist).")
+                    .font(.system(size: 15))
+                    .foregroundStyle(.secondary)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Example shortcut for the button:")
+                        .font(.system(size: 15, weight: .medium))
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("1. Start Chotto (opens app, starts session, returns end time)")
+                        Text("2. Open App \u{2192} Chotto (ensures app is foreground)")
+                        Text("3. Set Focus \u{2192} On (choose your Focus mode)")
+                        Text("4. Get Chotto End Time \u{2192} use as Focus duration")
+                        Text("5. (Optional) Play Music / Run Script / etc.")
+                    }
+                    .font(.system(size: 13))
+                    .foregroundStyle(.secondary)
+                    .padding(.leading, 8)
+                }
+                .padding(12)
+                .background(Color.chottoSage.opacity(0.08))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+
+            Spacer()
         }
+        .padding(20)
+    }
         .background(Color.chottoCream.ignoresSafeArea())
         .navigationTitle("Focus Automation")
         .navigationBarTitleDisplayMode(.inline)
