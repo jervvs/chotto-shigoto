@@ -20,6 +20,9 @@ struct HomeView: View {
     }
 
     private func triggerShortcut() {
+        let duration = TimeInterval(selectedMinutes * 60)
+        SharedDefaults.setPendingDuration(duration)
+
         let encodedName = selectedShortcutName.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
         let urlString = "shortcuts://run-shortcut?name=\(encodedName)"
         guard let url = URL(string: urlString) else { return }
@@ -70,7 +73,7 @@ struct HomeView: View {
                         triggerShortcut()
                     }
                 } label: {
-                    Text(selectedShortcutName.isEmpty ? "Start Timer" : "Start Shortcut")
+                    Text("Start Timer")
                         .font(.system(size: 17, weight: .medium))
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)

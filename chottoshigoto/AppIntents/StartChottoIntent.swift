@@ -13,9 +13,14 @@ struct StartChottoIntent: AppIntent {
     func perform() async throws -> some IntentResult & ReturnsValue<Date> & ProvidesDialog {
         SharedDefaults.signalStartSession()
 
-        let defaults = UserDefaults.standard
-        let minutes = defaults.integer(forKey: "defaultTimerMinutes")
-        let duration = TimeInterval((minutes > 0 ? minutes : 25) * 60)
+        let duration: TimeInterval
+        if let pendingDuration = SharedDefaults.consumePendingDuration() {
+            duration = pendingDuration
+        } else {
+            let defaults = UserDefaults.standard
+            let minutes = defaults.integer(forKey: "defaultTimerMinutes")
+            duration = TimeInterval((minutes > 0 ? minutes : 25) * 60)
+        }
         let endTime = Date().addingTimeInterval(duration)
 
         return .result(
